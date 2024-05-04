@@ -6,151 +6,77 @@ from pprint import pprint
 random.seed(1810)
 np.random.seed(1810)
 
-aggregated_products = 20  # m
-production_factors = 10  # n
-# upper_bound = 1000.0
+# Constants
+num_aggregated_products = 20  # m
+num_production_factors = 10  # n
+num_assigned_products = 9  # n1
 
-# Ay <= b, y[i] >= 0
-# production_matrix[i][j] (A) - value of a j-th production factor for i-th product
-production_matrix = np.random.uniform(0.1, 1, (aggregated_products, production_factors))
 
-# y[i] - how many first n1 products we want to produce
-n1 = 9
-y_assigned = [random.uniform(1, 100) for _ in range(n1)]
+def generate_production_data():
+    """Generates production data including matrix, assigned quantities, resource limits, etc."""
+    production_matrix = np.random.uniform(0.1, 1, (num_aggregated_products, num_production_factors))
+    y_assigned = [random.uniform(1, 100) for _ in range(num_assigned_products)]
+    b = [random.uniform(y_assigned[i] if i < num_assigned_products else 1000, 10000) for i in
+         range(num_aggregated_products)]
+    c = [random.uniform(1, 10) for _ in range(num_production_factors)]
+    f = [random.uniform(0.1, 1) for _ in range(num_assigned_products)]
+    priorities = np.ones(num_production_factors)
+    directive_terms = sorted([random.uniform(10, 100) for _ in range(num_production_factors)])
+    t_0 = [float(i) for i in range(num_production_factors)]
+    alpha = [random.uniform(1.0, 2) for _ in range(num_production_factors)]
+    omega = np.exp([random.uniform(0, 1) for _ in range(num_production_factors)])
+    omega = [np.exp(omega_i) / sum(np.exp(omega)) for omega_i in omega]  # Softmax normalization
+    return production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha, omega
 
-# b[i] - recourse variables, the first n1 products are produced with the first production factors
-# and must be greater than y_assigned[i]
-b = [random.uniform(y_assigned[i] if i < n1 else 1000, 10000) for i in range(aggregated_products)]
 
-# c - profit for producing one unit of the i-th production factor
-c = [random.uniform(1, 10) for _ in range(production_factors)]
+def print_data(data):
+    """Prints the generated production data in a formatted way."""
+    names = ["Production matrix", "Y assigned", "B", "C", "F", "Priorities", "Directive terms", "T_0", "Alpha", "Omega"]
+    for name, value in zip(names, data):
+        print(f"{name}:")
+        pprint(value)
+        print("=" * 100)
 
-# f - penalty for not producing enough of the first n1 products, must be less than c
-f = [random.uniform(0.1, 1) for i in range(n1)]
 
-# priorities - order of production factors
-priorities = np.ones(production_factors)
+def solve_production_problem(production_data, solve_criteria_1=True):
+    """Defines and solves the linear programming problem for production optimization."""
+    production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha, omega = production_data
 
-# directive_terms - directive_terms - times we can use the directive term
-directive_terms = [random.uniform(10, 100) for _ in range(production_factors)]
-directive_terms.sort()
+    lp_solver = pywraplp.Solver.CreateSolver("GLOP")
 
-# t_0 - starting time for product
-t_0 = [float(i) for i in range(production_factors)]
+    # Define Variables
+    y = [lp_solver.NumVar(0, lp_solver.infinity(), f"y_{i}") for i in range(num_production_factors)]
+    z = [lp_solver.NumVar(0, lp_solver.infinity(), f"z_{i}") for i in range(num_assigned_products)]
 
-# alpha - time for a production factor
-alpha = [random.uniform(1.0, 2) for _ in range(production_factors)]  # Uniform floats
+    # Define Constraints
+    for i in range(num_aggregated_products):
+        lp_solver.Add(sum(production_matrix[i][j] * y[j] for j in range(num_production_factors)) <= b[i])
+    for i in range(num_assigned_products):
+        # z_i = abs(t_0_i + alpha_i * y_i) - directive_terms_i
+        lp_solver.Add(z[i] >= 0)
+        lp_solver.Add((t_0[i] + alpha[i] * y[i]) - z[i] <= directive_terms[i])
+    for i in range(num_assigned_products):
+        lp_solver.Add(y[i] >= y_assigned[i])
 
-solve_criteria_1 = True
+    # Define Objective Function
+    objective = lp_solver.Objective()
+    for l in range(num_production_factors):
+        if solve_criteria_1:
+            objective.SetCoefficient(y[l], c[l] * priorities[l] * omega[l])
+        else:  # Criterion 1a
+            for m in range(num_aggregated_products):
+                objective.SetCoefficient(y[l], c[l] * production_matrix[m][l] * omega[l])
+    for i in range(num_assigned_products):
+        objective.SetCoefficient(z[i], -f[i])
+    objective.SetMaximization()
 
-# For Criterion 1:
-omega = [random.uniform(0, 1) for _ in range(production_factors)]
-omega = np.exp(omega) / np.sum(np.exp(omega))  # Softmax
+    lp_solver.Solve()
+    return [y[i].solution_value() for i in range(num_production_factors)], [z[i].solution_value() for i in range(
+        num_assigned_products)], objective.Value()
 
-# Print all the data
 
-print("Production matrix:")
-pprint(production_matrix)
-print("=" * 100)
-
-print("Y assigned:")
-pprint(y_assigned)
-print("=" * 100)
-
-print("B:")
-pprint(b)
-print("=" * 100)
-
-print("C:")
-pprint(c)
-print("=" * 100)
-
-print("F:")
-pprint(f)
-print("=" * 100)
-
-print("Priorities:")
-pprint(priorities)
-print("=" * 100)
-
-print("Directive terms:")
-pprint(directive_terms)
-print("=" * 100)
-
-print("T_0:")
-pprint(t_0)
-print("=" * 100)
-
-print("Alpha:")
-pprint(alpha)
-print("=" * 100)
-
-print("Omega:")
-pprint(omega)
-print("=" * 100)
-
-# ======================================================================================================================
-
-lp_solver = pywraplp.Solver.CreateSolver("GLOP")
-
-y = [lp_solver.NumVar(0, lp_solver.infinity(), f"y_{i}") for i in range(production_factors)]
-
-# T_i - z_i <= directive_terms[i], z_i >= 0
-
-z = [lp_solver.NumVar(0, lp_solver.infinity(), f"z_{i}") for i in range(n1)]
-
-# Ay <= b, y[i] >= 0;
-# T_i - z_i <= directive_terms[i], z_i >= 0, T_i = t_0[i] + alpha[i] * y[i], i <= n1;
-# y[i] >= y_assigned[i], i < n1;
-# n1 < production_factors;
-# Objective: max sum(c[i] * y[i]) - sum(f[i] * z[i])
-
-# First: Ay <= b, y[i] >= 0
-for i in range(aggregated_products):
-    lp_solver.Add(sum(production_matrix[i][j] * y[j] for j in range(production_factors)) <= b[i])
-
-# Second: T_i - z_i <= directive_terms[i], z_i >= 0, T_i = t_0[i] + alpha[i] * y[i], i <= n1
-for i in range(n1):
-    lp_solver.Add(z[i] >= 0)
-    lp_solver.Add((t_0[i] + alpha[i] * y[i]) - z[i] <= directive_terms[i])
-
-# Third: y[i] >= y_assigned[i], i < n1
-for i in range(n1):
-    lp_solver.Add(y[i] >= y_assigned[i])
-
-# Objective: max sum(c[i] * y[i]) - sum([i] * z[i])
-objective = lp_solver.Objective()
-for l in range(production_factors):
-    if solve_criteria_1:
-        objective.SetCoefficient(y[l], c[l] * priorities[l] * omega[l])
-    else:  # Criterion 1a
-        for m in range(aggregated_products):
-            objective.SetCoefficient(y[l], c[l] * production_matrix[m][l] * omega[l])
-for i in range(n1):
-    objective.SetCoefficient(z[i], -f[i])
-objective.SetMaximization()
-
-lp_solver.Solve()
-
-# Results
-
-detailed_results = {
-    "Objective": objective.Value(),
-    "Y_solution": [y[i].solution_value() for i in range(production_factors)],
-    "Z_solution": [z[i].solution_value() for i in range(n1)]
-}
-
-# f_opt^l - (c_l^T * y_com - sum(f_i * z_com))
-results = []
-for i in range(n1):
-    f_opt = objective.Value()
-    c_y_com = sum(c[j] * production_matrix[i][j] for j in range(production_factors))
-    sum_fi_z_com = sum(z[i].solution_value() for i in range(n1))
-    result = f_opt - (c_y_com - sum_fi_z_com)
-    results.append(result)
-
-# pprint("Results:")
-# pprint(results)
-
+test_production_data = generate_production_data()
+print_data(test_production_data)
+y_solution, z_solution, objective_value = solve_production_problem(test_production_data)
 print("Detailed results:")
-pprint(detailed_results)
+pprint({"Objective": objective_value, "Y_solution": y_solution, "Z_solution": z_solution})
