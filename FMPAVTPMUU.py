@@ -1,7 +1,8 @@
-import numpy as np
 import random
-from ortools.linear_solver import pywraplp
 from pprint import pprint
+
+import numpy as np
+from ortools.linear_solver import pywraplp
 
 random.seed(1810)
 np.random.seed(1810)
