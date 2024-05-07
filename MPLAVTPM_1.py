@@ -40,6 +40,36 @@ def print_data(data):
         print("=" * 100)
 
 
+def find_temp_optimal_solution(production_data, l):
+    """Finds the temporary optimal solution for the given production data."""
+    production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha, _ = production_data
+
+    lp_solver = pywraplp.Solver.CreateSolver("GLOP")
+
+    # Define Variables
+    y = [lp_solver.NumVar(0, lp_solver.infinity(), f"y_{i}") for i in range(num_production_factors)]
+    z = [lp_solver.NumVar(0, lp_solver.infinity(), f"z_{i}") for i in range(num_assigned_products)]
+
+    # Define Constraints
+    for i in range(num_aggregated_products):
+        lp_solver.Add(sum(production_matrix[i][j] * y[j] for j in range(num_production_factors)) <= b[i])
+    for i in range(num_assigned_products):
+        lp_solver.Add(z[i] >= 0)
+        lp_solver.Add((t_0[i] + alpha[i] * y[i]) - z[i] <= directive_terms[i])
+
+    # Define Objective
+    objective = lp_solver.Objective()
+    for i in range(num_production_factors):
+        objective.SetCoefficient(y[i], c[l][i] * priorities[i])
+    for i in range(num_assigned_products):
+        objective.SetCoefficient(z[i], -f[i])
+    objective.SetMaximization()
+
+    lp_solver.Solve()
+    return [y[i].solution_value() for i in range(num_production_factors)], [z[i].solution_value() for i in range(
+        num_assigned_products)], objective.Value()
+
+
 def solve_production_problem(production_data):
     """Defines and solves the linear programming problem for production optimization."""
     production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha, omegas = production_data
@@ -82,7 +112,16 @@ def solve_production_problem(production_data):
 
 if __name__ == "__main__":
     test_production_data = generate_production_data()
+    F_optimums = [find_temp_optimal_solution(test_production_data, l)[2] for l in range(L)]
     print_data(test_production_data)
     y_solution, z_solution, objective_value = solve_production_problem(test_production_data)
     print("Detailed results:")
     pprint({"Objectives": objective_value, "Y_solution": y_solution, "Z_solution": z_solution})
+    print("Differences between f_optimum and f_solution:")
+    for l in range(L):
+        # C_L^T * y_solution - F^T * z_solution
+        c_l = test_production_data[3][l]
+        f = test_production_data[4]
+        f_solution = sum([c_l[i] * y_solution[i] for i in range(num_production_factors)]) - \
+                     sum([f[i] * z_solution[i] for i in range(num_assigned_products)])
+        print(f"F_optimum_{l} - F_solution_{l}: {F_optimums[l] - f_solution}")

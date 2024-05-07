@@ -30,6 +30,7 @@ def generate_production_data():
     ]
 
     P_L = [random.uniform(0, 1) for _ in range(M_L)]
+    P_L = [np.exp(P_m_i) / sum(np.exp(P_L)) for P_m_i in P_L]
 
     f = [random.uniform(0.1, 1) for _ in range(num_assigned_products)]
     priorities = np.ones(num_production_factors)
