@@ -64,7 +64,7 @@ def find_temp_optimal_solution(production_data, l):
     for i in range(num_assigned_products):
         lp_solver.Add(y[i] >= y_assigned[i])
 
-    # Define Objective
+    # Define Goal
     objective = lp_solver.Objective()
     for i in range(num_production_factors):
         objective.SetCoefficient(y[i], c[l][i] * priorities[i])
@@ -104,10 +104,10 @@ def solve_production_problem(production_data):
         objective = lp_solver.Objective()
         for l in range(num_production_factors):
             objective.SetCoefficient(y[l], c[i][l] * priorities[l] * omegas[i][l])
-        for i in range(num_assigned_products):
-            objective.SetCoefficient(u_plus[i], -a_plus[i])
-            objective.SetCoefficient(u_minus[i], -a_minus[i])
-            objectives.append(objective)
+        for l in range(num_assigned_products):
+            objective.SetCoefficient(u_plus[l], -a_plus[l])
+            objective.SetCoefficient(u_minus[l], -a_minus[l])
+        objectives.append(objective)
 
     for i in range(L):
         objectives[i].SetMaximization()
