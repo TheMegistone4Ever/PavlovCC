@@ -75,5 +75,10 @@ if __name__ == "__main__":
     test_production_data = generate_production_data()
     print_data(test_production_data)
     y_solution, z_solution, objective_value = solve_production_problem(test_production_data)
-    print("Detailed results:")
-    pprint({"Objective": objective_value, "Y_solution": y_solution, "Z_solution": z_solution})
+    t_0 = test_production_data[7]
+    alpha = test_production_data[8]
+    policy_deadlines = [t_0[i] + alpha[i] * y_solution[i] for i in range(num_assigned_products)]
+    completion_dates = [z_solution[i] for i in range(num_assigned_products)]
+    differences = [policy_deadlines[i] - completion_dates[i] for i in range(num_assigned_products)]
+    pprint({"Objective": objective_value, "Y_solution": y_solution, "Z_solution": z_solution,
+            "Policy deadlines": policy_deadlines, "Completion dates": completion_dates, "Differences": differences})

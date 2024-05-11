@@ -22,13 +22,7 @@ def generate_production_data():
     b = [random.uniform(y_assigned[i] if i < num_assigned_products else 1000, 10000) for i in
          range(num_aggregated_products)]
 
-    C_L = [
-        [
-            [
-                random.uniform(1, 10) for _ in range(num_production_factors)
-            ] for _ in range(L)
-        ] for _ in range(M_L)
-    ]
+    C_L = [[[random.uniform(1, 10) for _ in range(num_production_factors)] for _ in range(L)] for _ in range(M_L)]
 
     P_L = [random.uniform(0, 1) for _ in range(M_L)]
     P_L = [np.exp(P_m_i) / sum(np.exp(P_L)) for P_m_i in P_L]
@@ -136,15 +130,21 @@ if __name__ == "__main__":
     test_production_data = generate_production_data()
     print_data(test_production_data)
     y_solution, z_solution, objective_value = solve_production_problem(test_production_data)
+    t_0 = test_production_data[7]
+    alpha = test_production_data[8]
+    policy_deadlines = [t_0[i] + alpha[i] * y_solution[i] for i in range(num_assigned_products)]
+    completion_dates = [z_solution[i] for i in range(num_assigned_products)]
+    differences = [policy_deadlines[i] - completion_dates[i] for i in range(num_assigned_products)]
     print("Detailed results:")
-    pprint({"Objective": objective_value, "Y_solution": y_solution, "Z_solution": z_solution})
+    pprint({"Objective": objective_value, "Y_solution": y_solution, "Z_solution": z_solution,
+            "Policy deadlines": policy_deadlines, "Completion dates": completion_dates, "Differences": differences})
     print("Differences between f_optimum and f_solution:")
     for l in range(L):
         F_L_M_optimums = test_production_data[-2]
         mean_difference = 0
         P_L = test_production_data[-1]
         for m in range(M_L):
-            inner_difference = 0  # C_M_l ^ T * Y_founded - F^T * Z_founded
+            inner_difference = 0  # C_M_l ^ T * Y_solution - F^T * Z_solution
             c_m_l = test_production_data[3][m][l]
             f = test_production_data[4]
             for i in range(num_assigned_products):

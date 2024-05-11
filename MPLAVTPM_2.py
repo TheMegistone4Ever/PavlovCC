@@ -75,8 +75,9 @@ def find_temp_optimal_solution(production_data, l):
     objective.SetMaximization()
 
     lp_solver.Solve()
-    return [y[i].solution_value() for i in range(num_production_factors)], [u_plus[i].solution_value() for i in range(
-        num_assigned_products)], [u_minus[i].solution_value() for i in range(num_assigned_products)], objective.Value()
+    return [y[i].solution_value() for i in range(num_production_factors)], [u_plus[i].solution_value() for i in
+                                                                            range(num_assigned_products)], [
+        u_minus[i].solution_value() for i in range(num_assigned_products)], objective.Value()
 
 
 def solve_production_problem(production_data):
@@ -120,9 +121,10 @@ def solve_production_problem(production_data):
         print(f"U_minus: {[u_minus[i].solution_value() for i in range(num_assigned_products)]}")
         print("=" * 100)
 
-    return [y[i].solution_value() for i in range(num_production_factors)], [u_plus[i].solution_value() for i in range(
-        num_assigned_products)], [u_minus[i].solution_value() for i in range(num_assigned_products)], [
-        objective.Value() for objective in objectives]
+    return [y[i].solution_value() for i in range(num_production_factors)], [u_plus[i].solution_value() for i in
+                                                                            range(num_assigned_products)], [
+        u_minus[i].solution_value() for i in range(num_assigned_products)], [objective.Value() for objective in
+        objectives]
 
 
 if __name__ == "__main__":
@@ -130,16 +132,22 @@ if __name__ == "__main__":
     F_optimums = [find_temp_optimal_solution(test_production_data, l)[3] for l in range(L)]
     print_data(test_production_data)
     y_solution, u_plus_solution, u_minus_solution, objective_value = solve_production_problem(test_production_data)
+    t_0 = test_production_data[7]
+    alpha = test_production_data[8]
+    policy_deadlines = [t_0[i] + alpha[i] * y_solution[i] for i in range(num_assigned_products)]
+    completion_dates = [u_plus_solution[i] - u_minus_solution[i] for i in range(num_assigned_products)]
+    differences = [policy_deadlines[i] - completion_dates[i] for i in range(num_assigned_products)]
     print("Detailed results:")
-    pprint({"Objectives": objective_value, "Y_solution": y_solution, "U_plus_solution": u_plus_solution,
-            "U_minus_solution": u_minus_solution})
+    pprint({"Objective": objective_value, "Y_solution": y_solution, "U_plus_solution": u_plus_solution,
+            "U_minus_solution": u_minus_solution, "Policy deadlines": policy_deadlines,
+            "Completion dates": completion_dates, "Differences": differences})
     print("Differences between f_optimum and f_solution:")
     for l in range(L):
         # C_L^T * y_solution - (A_plus^T * U_plus_solution + A_minus^T * U_minus_solution)
         c_l = test_production_data[3][l]
         a_plus = test_production_data[9]
         a_minus = test_production_data[10]
-        f_solution = sum([c_l[j] * y_solution[j] for j in range(num_production_factors)]) - \
-                     sum([a_plus[j] * u_plus_solution[j] for j in range(num_assigned_products)]) - \
-                     sum([a_minus[j] * u_minus_solution[j] for j in range(num_assigned_products)])
+        f_solution = sum([c_l[j] * y_solution[j] for j in range(num_production_factors)]) - sum(
+            [a_plus[j] * u_plus_solution[j] for j in range(num_assigned_products)]) - sum(
+            [a_minus[j] * u_minus_solution[j] for j in range(num_assigned_products)])
         print(f"F_optimum_{l} - F_solution_{l}: {F_optimums[l] - f_solution}")

@@ -113,13 +113,19 @@ if __name__ == "__main__":
     F_optimums = [find_temp_optimal_solution(test_production_data, m)[2] for m in range(M)]
     print_data(test_production_data)
     y_solution, z_solution, objective_value = solve_production_problem(test_production_data)
+    t_0 = test_production_data[8]
+    alpha = test_production_data[9]
+    policy_deadlines = [t_0[i] + alpha[i] * y_solution[i] for i in range(num_assigned_products)]
+    completion_dates = [z_solution[i] for i in range(num_assigned_products)]
+    differences = [policy_deadlines[i] - completion_dates[i] for i in range(num_assigned_products)]
     print("Detailed results:")
-    pprint({"Objective": objective_value, "Y_solution": y_solution, "Z_solution": z_solution})
+    pprint({"Objective": objective_value, "Y_solution": y_solution, "Z_solution": z_solution,
+            "Policy deadlines": policy_deadlines, "Completion dates": completion_dates, "Differences": differences})
     print("Differences between f_optimum and f_solution:")
     for m in range(M):
         # C_L^T * y_solution - F^T * z_solution
         c_l_m = test_production_data[3][m]
         f = test_production_data[5]
-        f_solution = sum([c_l_m[i] * y_solution[i] for i in range(num_production_factors)]) - \
-                     sum([f[i] * z_solution[i] for i in range(num_assigned_products)])
+        f_solution = sum([c_l_m[i] * y_solution[i] for i in range(num_production_factors)]) - sum(
+            [f[i] * z_solution[i] for i in range(num_assigned_products)])
         print(f"F_optimum_{m} - F_solution_{m} = {F_optimums[m] - f_solution}")
