@@ -134,9 +134,11 @@ if __name__ == "__main__":
     y_solution, u_plus_solution, u_minus_solution, objective_value = solve_production_problem(test_production_data)
     t_0 = test_production_data[7]
     alpha = test_production_data[8]
-    policy_deadlines = [t_0[i] + alpha[i] * y_solution[i] for i in range(num_assigned_products)]
-    completion_dates = [u_plus_solution[i] - u_minus_solution[i] for i in range(num_assigned_products)]
-    differences = [policy_deadlines[i] - completion_dates[i] for i in range(num_assigned_products)]
+    policy_deadlines, completion_dates, differences = list(), list(), list()
+    for a in alpha:
+        policy_deadlines.append([t_0[i] + a[i] * y_solution[i] for i in range(num_assigned_products)])
+        completion_dates.append([u_plus_solution[i] - u_minus_solution[i] for i in range(num_assigned_products)])
+        differences.append([policy_deadlines[-1][i] - completion_dates[-1][i] for i in range(num_assigned_products)])
     print("Detailed results:")
     pprint({"Objective": objective_value, "Y_solution": y_solution, "U_plus_solution": u_plus_solution,
             "U_minus_solution": u_minus_solution, "Policy deadlines": policy_deadlines,
