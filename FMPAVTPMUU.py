@@ -1,8 +1,9 @@
 import random
-from pprint import pprint
 
 import numpy as np
 from ortools.linear_solver import pywraplp
+
+np.set_printoptions(linewidth=1000)
 
 random.seed(1810)
 np.random.seed(1810)
@@ -49,13 +50,12 @@ def generate_production_data():
     return *test_production_data, F_L_M_optimums, P_L
 
 
-def print_data(data):
+def print_data(data, def_names=(
+        "Production matrix", "Y assigned", "B", "C_L", "F", "Priorities", "Directive terms", "T_0", "Alpha", "Omega",
+        "F_L_M_optimums", "P_L")):
     """Prints the generated production data in a formatted way."""
-    names = ["Production matrix", "Y assigned", "B", "C_L", "F", "Priorities", "Directive terms", "T_0", "Alpha",
-             "Omega", "F_L_M_optimums", "P_L"]
-    for name, value in zip(names, data):
-        print(f"{name}:")
-        pprint(value)
+    for name, value in zip(def_names, data):
+        print(f"{name}:\n{np.round(value, 2)}")
         print("=" * 100)
 
 
@@ -136,8 +136,8 @@ if __name__ == "__main__":
     completion_dates = [z_solution[i] for i in range(num_assigned_products)]
     differences = [policy_deadlines[i] - completion_dates[i] for i in range(num_assigned_products)]
     print("Detailed results:")
-    pprint({"Objective": objective_value, "Y_solution": y_solution, "Z_solution": z_solution,
-            "Policy deadlines": policy_deadlines, "Completion dates": completion_dates, "Differences": differences})
+    names = ["Objective", "Y_solution", "Z_solution", "Policy deadlines", "Completion dates", "Differences"]
+    print_data([objective_value, y_solution, z_solution, policy_deadlines, completion_dates, differences], names)
     print("Differences between f_optimum and f_solution:")
     for l in range(L):
         F_L_M_optimums = test_production_data[-2]
@@ -151,4 +151,4 @@ if __name__ == "__main__":
                 inner_difference += c_m_l[i] * y_solution[i] - f[i] * z_solution[i]
             optimum = F_L_M_optimums[m][l]
             mean_difference += P_L[m] * abs(optimum - inner_difference)
-        print(f"{l = },\tomega_l = {test_production_data[-3][l]},\t{mean_difference = }")
+        print(f"{l = },\tomega_l = {test_production_data[-3][l]:,.2f},\t{mean_difference = :,.2f}")

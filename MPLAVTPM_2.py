@@ -124,7 +124,7 @@ def solve_production_problem(production_data):
     return [y[i].solution_value() for i in range(num_production_factors)], [u_plus[i].solution_value() for i in
                                                                             range(num_assigned_products)], [
         u_minus[i].solution_value() for i in range(num_assigned_products)], [objective.Value() for objective in
-        objectives]
+                                                                             objectives]
 
 
 if __name__ == "__main__":

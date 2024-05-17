@@ -1,8 +1,9 @@
 import random
-from pprint import pprint
 
 import numpy as np
 from ortools.linear_solver import pywraplp
+
+np.set_printoptions(linewidth=1000)
 
 random.seed(1810)
 np.random.seed(1810)
@@ -33,13 +34,12 @@ def generate_production_data():
     return production_matrix, y_assigned, b, c, P_m, f, priorities, directive_terms, t_0, alpha, omega
 
 
-def print_data(data):
+def print_data(data, def_names=(
+        "Production matrix", "Y assigned", "B", "C", "P_m", "F", "Priorities", "Directive terms", "T_0", "Alpha",
+        "Omega")):
     """Prints the generated production data in a formatted way."""
-    names = ["Production matrix", "Y assigned", "B", "C", "P_m", "F", "Priorities", "Directive terms", "T_0", "Alpha",
-             "Omega"]
-    for name, value in zip(names, data):
-        print(f"{name}:")
-        pprint(value)
+    for name, value in zip(def_names, data):
+        print(f"{name}:\n{np.round(value, 2)}")
         print("=" * 100)
 
 
@@ -119,8 +119,8 @@ if __name__ == "__main__":
     completion_dates = [z_solution[i] for i in range(num_assigned_products)]
     differences = [policy_deadlines[i] - completion_dates[i] for i in range(num_assigned_products)]
     print("Detailed results:")
-    pprint({"Objective": objective_value, "Y_solution": y_solution, "Z_solution": z_solution,
-            "Policy deadlines": policy_deadlines, "Completion dates": completion_dates, "Differences": differences})
+    names = ["Objective", "Y_solution", "Z_solution", "Policy deadlines", "Completion dates", "Differences"]
+    print_data([objective_value, y_solution, z_solution, policy_deadlines, completion_dates, differences], names)
     print("Differences between f_optimum and f_solution:")
     for m in range(M):
         # C_L^T * y_solution - F^T * z_solution
@@ -128,4 +128,4 @@ if __name__ == "__main__":
         f = test_production_data[5]
         f_solution = sum([c_l_m[i] * y_solution[i] for i in range(num_production_factors)]) - sum(
             [f[i] * z_solution[i] for i in range(num_assigned_products)])
-        print(f"F_optimum_{m} - F_solution_{m} = {F_optimums[m] - f_solution}")
+        print(f"F_optimum_{m} - F_solution_{m} = {F_optimums[m] - f_solution:,.2f}")
