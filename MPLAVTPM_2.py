@@ -1,5 +1,4 @@
 import random
-from pprint import pprint
 
 import numpy as np
 from ortools.linear_solver import pywraplp
@@ -34,13 +33,12 @@ def generate_production_data():
     return production_matrix, y_assigned, b, c, priorities, directive_terms, t_0, alpha, omegas, a_plus, a_minus
 
 
-def print_data(data):
+def print_data(data, def_names=(
+        "Production matrix", "Y assigned", "B", "C", "F", "Priorities", "Directive terms", "T_0", "Alpha", "Omegas",
+        "A_plus", "A_minus")):
     """Prints the generated production data in a formatted way."""
-    names = ["Production matrix", "Y assigned", "B", "C", "F", "Priorities", "Directive terms", "T_0", "Alpha",
-             "Omegas", "A_plus", "A_minus"]
-    for name, value in zip(names, data):
-        print(f"{name}:")
-        pprint(value)
+    for name, value in zip(def_names, data):
+        print(f"{name}:\n{np.round(value, 2)}")
         print("=" * 100)
 
 
@@ -140,9 +138,10 @@ if __name__ == "__main__":
         completion_dates.append([u_plus_solution[i] - u_minus_solution[i] for i in range(num_assigned_products)])
         differences.append([policy_deadlines[-1][i] - completion_dates[-1][i] for i in range(num_assigned_products)])
     print("Detailed results:")
-    pprint({"Objective": objective_value, "Y_solution": y_solution, "U_plus_solution": u_plus_solution,
-            "U_minus_solution": u_minus_solution, "Policy deadlines": policy_deadlines,
-            "Completion dates": completion_dates, "Differences": differences})
+    names = ["Objective", "Y_solution", "U_plus_solution", "U_minus_solution", "Policy deadlines", "Completion dates",
+             "Differences"]
+    print_data([objective_value, y_solution, u_plus_solution, u_minus_solution, policy_deadlines, completion_dates,
+                differences], names)
     print("Differences between f_optimum and f_solution:")
     for l in range(L):
         # C_L^T * y_solution - (A_plus^T * U_plus_solution + A_minus^T * U_minus_solution)
@@ -152,4 +151,4 @@ if __name__ == "__main__":
         f_solution = sum([c_l[j] * y_solution[j] for j in range(num_production_factors)]) - sum(
             [a_plus[j] * u_plus_solution[j] for j in range(num_assigned_products)]) - sum(
             [a_minus[j] * u_minus_solution[j] for j in range(num_assigned_products)])
-        print(f"F_optimum_{l} - F_solution_{l}: {F_optimums[l] - f_solution}")
+        print(f"F_optimum_{l} - F_solution_{l}: {F_optimums[l] - f_solution:,.2f}")
