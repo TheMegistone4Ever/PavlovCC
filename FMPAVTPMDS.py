@@ -24,10 +24,10 @@ def generate_production_data():
     c = [[random.uniform(1, 10) for _ in range(num_production_factors)] for _ in range(L)]
     f = [random.uniform(0.1, 1) for _ in range(num_assigned_products)]
     priorities = np.ones(num_production_factors)
-    directive_terms = sorted([random.uniform(10, 100) for _ in range(num_production_factors)])
+    directive_terms = sorted([random.uniform(1, 100) for _ in range(num_production_factors)])
     t_0 = [float(i) for i in range(num_production_factors)]
     alpha = [random.uniform(1.0, 2) for _ in range(num_production_factors)]
-    omega = np.exp([random.uniform(0, 1) for _ in range(L)])
+    omega = [random.uniform(0, 1) for _ in range(L)]
     omega = [np.exp(omega_i) / sum(np.exp(omega)) for omega_i in omega]  # Softmax normalization
     return production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha, omega
 
@@ -120,6 +120,8 @@ if __name__ == "__main__":
     print("Differences between f_optimum and f_solution:")
     for l in range(L):
         optimum_value = find_optimal_solution(test_production_data, l)[2]
-        f_solution = sum(test_production_data[4][i] * z_solution[i] for i in range(num_assigned_products))
+        f_solution = sum(test_production_data[3][l][i] * y_solution[i] for i in range(num_production_factors)) - sum(
+            test_production_data[4][i] * z_solution[i] for i in range(num_assigned_products))
         difference = optimum_value - f_solution
-        print(f"{l = },\tomega_l = {test_production_data[9][l]:,.2f},\t{difference = :,.2f}")
+        print(f"{l = },\tomega_l = {test_production_data[9][l]:,.2f},\t{optimum_value = :,.2f},\t{f_solution = :,.2f},"
+              f"\t{difference = :,.2f}")

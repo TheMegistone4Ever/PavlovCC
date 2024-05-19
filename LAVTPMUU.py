@@ -29,7 +29,7 @@ def generate_production_data():
     directive_terms = sorted([random.uniform(10, 100) for _ in range(num_production_factors)])
     t_0 = [float(i) for i in range(num_production_factors)]
     alpha = [random.uniform(1.0, 2) for _ in range(num_production_factors)]
-    omega = np.exp([random.uniform(0, 1) for _ in range(num_production_factors)])
+    omega = [random.uniform(0, 1) for _ in range(num_production_factors)]  # TODO: Check this
     omega = [np.exp(omega_i) / sum(np.exp(omega)) for omega_i in omega]  # Softmax normalization
     return production_matrix, y_assigned, b, c, P_m, f, priorities, directive_terms, t_0, alpha, omega
 
@@ -128,4 +128,5 @@ if __name__ == "__main__":
         f = test_production_data[5]
         f_solution = sum([c_l_m[i] * y_solution[i] for i in range(num_production_factors)]) - sum(
             [f[i] * z_solution[i] for i in range(num_assigned_products)])
-        print(f"F_optimum_{m} - F_solution_{m} = {F_optimums[m] - f_solution:,.2f}")
+        difference = F_optimums[m] - f_solution
+        print(f"{m = },\t{F_optimums[m] = :,.2f},\t{f_solution = :,.2f},\t{difference = :,.2f}")

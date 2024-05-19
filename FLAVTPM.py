@@ -26,9 +26,7 @@ def generate_production_data():
     directive_terms = sorted([random.uniform(10, 100) for _ in range(num_production_factors)])
     t_0 = [float(i) for i in range(num_production_factors)]
     alpha = [random.uniform(1.0, 2) for _ in range(num_production_factors)]
-    omega = np.exp([random.uniform(0, 1) for _ in range(num_production_factors)])
-    omega = [np.exp(omega_i) / sum(np.exp(omega)) for omega_i in omega]  # Softmax normalization
-    return production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha, omega
+    return production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha
 
 
 def print_data(data, def_names=(
@@ -40,7 +38,7 @@ def print_data(data, def_names=(
 
 def solve_production_problem(production_data):
     """Defines and solves the linear programming problem for production optimization."""
-    production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha, omega = production_data
+    production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha = production_data
 
     lp_solver = pywraplp.Solver.CreateSolver("GLOP")
 
@@ -60,7 +58,7 @@ def solve_production_problem(production_data):
     # Define Objective Function
     objective = lp_solver.Objective()
     for l in range(num_production_factors):
-        objective.SetCoefficient(y[l], c[l] * priorities[l] * omega[l])
+        objective.SetCoefficient(y[l], c[l] * priorities[l])
     for i in range(num_assigned_products):
         objective.SetCoefficient(z[i], -f[i])
     objective.SetMaximization()

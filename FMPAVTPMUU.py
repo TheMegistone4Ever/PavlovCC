@@ -33,7 +33,7 @@ def generate_production_data():
     directive_terms = sorted([random.uniform(10, 100) for _ in range(num_production_factors)])
     t_0 = [float(i) for i in range(num_production_factors)]
     alpha = [random.uniform(1.0, 2) for _ in range(num_production_factors)]
-    omega = np.exp([random.uniform(0, 1) for _ in range(L)])
+    omega = [random.uniform(0, 1) for _ in range(L)]
     omega = [np.exp(omega_i) / sum(np.exp(omega)) for omega_i in omega]  # Softmax normalization
     test_production_data = production_matrix, y_assigned, b, C_L, f, priorities, directive_terms, t_0, alpha, omega
 
@@ -143,12 +143,17 @@ if __name__ == "__main__":
         F_L_M_optimums = test_production_data[-2]
         mean_difference = 0
         P_L = test_production_data[-1]
+        weighted_optimum_values = 0
+        weighted_inner_differences = 0
         for m in range(M_L):
             inner_difference = 0  # C_M_l ^ T * Y_solution - F^T * Z_solution
             c_m_l = test_production_data[3][m][l]
             f = test_production_data[4]
             for i in range(num_assigned_products):
                 inner_difference += c_m_l[i] * y_solution[i] - f[i] * z_solution[i]
-            optimum = F_L_M_optimums[m][l]
-            mean_difference += P_L[m] * abs(optimum - inner_difference)
-        print(f"{l = },\tomega_l = {test_production_data[-3][l]:,.2f},\t{mean_difference = :,.2f}")
+            optimum_value = F_L_M_optimums[m][l]
+            weighted_optimum_values += P_L[m] * optimum_value
+            weighted_inner_differences += P_L[m] * inner_difference
+        mean_difference = weighted_optimum_values - weighted_inner_differences
+        print(f"{l = },\tomega_l = {test_production_data[-3][l]:,.2f},\t{weighted_optimum_values = :,.2f}"
+              f",\t{weighted_inner_differences = :,.2f},\t{mean_difference = :,.2f}")
