@@ -24,17 +24,17 @@ def generate_production_data():
     directive_terms = sorted([random.uniform(10, 100) for _ in range(num_production_factors)])
     t_0 = [float(i) for i in range(num_production_factors)]
     alpha = [random.uniform(1.0, 2) for _ in range(num_production_factors)]
-    omegas = [[random.uniform(0, 1) for _ in range(num_production_factors)] for _ in range(L)]  # TODO: Check this
-    omegas = [[np.exp(omega_i) / sum(np.exp(omega)) for omega_i in omega] for omega in omegas]  # Softmax normalization
+    omega = [random.uniform(0, 1) for _ in range(L)]
+    omega = [np.exp(omega_i) / sum(np.exp(omega)) for omega_i in omega]  # Softmax normalization
     a_plus = [random.uniform(0, 1) for _ in range(num_assigned_products)]
     a_plus = [np.exp(a_plus_i) / sum(np.exp(a_plus)) for a_plus_i in a_plus]
     a_minus = [random.uniform(0, 1) for _ in range(num_assigned_products)]
     a_minus = [np.exp(a_minus_i) / sum(np.exp(a_minus)) for a_minus_i in a_minus]
-    return production_matrix, y_assigned, b, c, priorities, directive_terms, t_0, alpha, omegas, a_plus, a_minus
+    return production_matrix, y_assigned, b, c, priorities, directive_terms, t_0, alpha, omega, a_plus, a_minus
 
 
 def print_data(data, def_names=(
-        "Production matrix", "Y assigned", "B", "C", "F", "Priorities", "Directive terms", "T_0", "Alpha", "Omegas",
+        "Production matrix", "Y assigned", "B", "C", "F", "Priorities", "Directive terms", "T_0", "Alpha", "Omega",
         "A_plus", "A_minus")):
     """Prints the generated production data in a formatted way."""
     for name, value in zip(def_names, data):
@@ -80,7 +80,7 @@ def find_temp_optimal_solution(production_data, l):
 
 def solve_production_problem(production_data):
     """Defines and solves the linear programming problem for production optimization."""
-    production_matrix, y_assigned, b, c, priorities, directive_terms, t_0, alpha, omegas, a_plus, a_minus = production_data
+    production_matrix, y_assigned, b, c, priorities, directive_terms, t_0, alpha, omega, a_plus, a_minus = production_data
 
     lp_solver = pywraplp.Solver.CreateSolver("GLOP")
 
@@ -99,30 +99,19 @@ def solve_production_problem(production_data):
     for i in range(num_assigned_products):
         lp_solver.Add(y[i] >= y_assigned[i])
 
-    objectives = list()
-    for i in range(L):
-        objective = lp_solver.Objective()
+    objective = lp_solver.Objective()
+    for i, o in enumerate(omega):
         for l in range(num_production_factors):
-            objective.SetCoefficient(y[l], c[i][l] * priorities[l] * omegas[i][l])
+            objective.SetCoefficient(y[l], c[i][l] * priorities[l] * o)
         for l in range(num_assigned_products):
             objective.SetCoefficient(u_plus[l], -a_plus[l])
             objective.SetCoefficient(u_minus[l], -a_minus[l])
-        objectives.append(objective)
+    objective.SetMaximization()
 
-    for i in range(L):
-        objectives[i].SetMaximization()
-        lp_solver.Solve()
-        print(f"Objective {i}: {objectives[i].Value()}")
-        print(f"Y: {[y[i].solution_value() for i in range(num_production_factors)]}")
-        # print(f"Z: {[z[i].solution_value() for i in range(num_assigned_products)]}")
-        print(f"U_plus: {[u_plus[i].solution_value() for i in range(num_assigned_products)]}")
-        print(f"U_minus: {[u_minus[i].solution_value() for i in range(num_assigned_products)]}")
-        print("=" * 100)
-
+    lp_solver.Solve()
     return [y[i].solution_value() for i in range(num_production_factors)], [u_plus[i].solution_value() for i in
                                                                             range(num_assigned_products)], [
-        u_minus[i].solution_value() for i in range(num_assigned_products)], [objective.Value() for objective in
-                                                                             objectives]
+        u_minus[i].solution_value() for i in range(num_assigned_products)], objective.Value()
 
 
 if __name__ == "__main__":
@@ -130,13 +119,11 @@ if __name__ == "__main__":
     F_optimums = [find_temp_optimal_solution(test_production_data, l)[3] for l in range(L)]
     print_data(test_production_data)
     y_solution, u_plus_solution, u_minus_solution, objective_value = solve_production_problem(test_production_data)
-    t_0 = test_production_data[7]
-    alpha = test_production_data[8]
-    policy_deadlines, completion_dates, differences = list(), list(), list()
-    for a in alpha:
-        policy_deadlines.append([t_0[i] + a[i] * y_solution[i] for i in range(num_assigned_products)])
-        completion_dates.append([u_plus_solution[i] - u_minus_solution[i] for i in range(num_assigned_products)])
-        differences.append([policy_deadlines[-1][i] - completion_dates[-1][i] for i in range(num_assigned_products)])
+    t_0 = test_production_data[6]
+    alpha = test_production_data[7]
+    policy_deadlines = [t_0[i] + alpha[i] * y_solution[i] for i in range(num_assigned_products)]
+    completion_dates = [u_plus_solution[i] - u_minus_solution[i] for i in range(num_assigned_products)]
+    differences = [policy_deadlines[i] - completion_dates[i] for i in range(num_assigned_products)]
     print("Detailed results:")
     names = ["Objective", "Y_solution", "U_plus_solution", "U_minus_solution", "Policy deadlines", "Completion dates",
              "Differences"]
@@ -153,4 +140,4 @@ if __name__ == "__main__":
             [a_minus[j] * u_minus_solution[j] for j in range(num_assigned_products)])
         difference = F_optimums[l] - f_solution
         omega_l = test_production_data[-3][l]
-        print(f"{l = },\t{omega_l = },\t{F_optimums[l] = :,.2f},\t{f_solution = :,.2f},\t{difference = :,.2f}")
+        print(f"{l = },\t{omega_l = :,.2f},\t{F_optimums[l] = :,.2f},\t{f_solution = :,.2f},\t{difference = :,.2f}")

@@ -93,11 +93,11 @@ def solve_production_problem(production_data):
 
     # Define Objective Function
     objective = lp_solver.Objective()
-    for i, omega in enumerate(omega):
+    for i, o in enumerate(omega):
         for l in range(num_production_factors):
-            objective.SetCoefficient(y[l], c[i][l] * priorities[l] * omega)
+            objective.SetCoefficient(y[l], c[i][l] * priorities[l] * o)
         for l in range(num_assigned_products):
-            objective.SetCoefficient(z[l], -f[l] * omega)
+            objective.SetCoefficient(z[l], -f[l] * o)
     objective.SetMaximization()
 
     lp_solver.Solve()

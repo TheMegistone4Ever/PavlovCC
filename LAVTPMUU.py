@@ -29,7 +29,7 @@ def generate_production_data():
     directive_terms = sorted([random.uniform(10, 100) for _ in range(num_production_factors)])
     t_0 = [float(i) for i in range(num_production_factors)]
     alpha = [random.uniform(1.0, 2) for _ in range(num_production_factors)]
-    omega = [random.uniform(0, 1) for _ in range(num_production_factors)]  # TODO: Check this
+    omega = [random.uniform(0, 1) for _ in range(num_production_factors)]
     omega = [np.exp(omega_i) / sum(np.exp(omega)) for omega_i in omega]  # Softmax normalization
     return production_matrix, y_assigned, b, c, P_m, f, priorities, directive_terms, t_0, alpha, omega
 
@@ -97,8 +97,8 @@ def solve_production_problem(production_data):
     # Define Objective Function
     objective = lp_solver.Objective()
     for i, p_m in enumerate(P_m):
-        for l in range(num_production_factors):
-            objective.SetCoefficient(y[l], c[i][l] * priorities[l] * omega[l] * p_m)
+        for l, o in enumerate(omega):
+            objective.SetCoefficient(y[l], c[i][l] * priorities[l] * o * p_m)
         for l in range(num_assigned_products):
             objective.SetCoefficient(z[l], -f[l] * p_m)
     objective.SetMaximization()
