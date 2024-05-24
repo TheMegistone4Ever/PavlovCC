@@ -123,5 +123,4 @@ if __name__ == "__main__":
         f_solution = sum(test_production_data[3][l][i] * y_solution[i] for i in range(num_production_factors)) - sum(
             test_production_data[4][i] * z_solution[i] for i in range(num_assigned_products))
         difference = optimum_value - f_solution
-        print(f"{l = },\tomega_l = {test_production_data[9][l]:,.2f},\t{optimum_value = :,.2f},\t{f_solution = :,.2f},"
-              f"\t{difference = :,.2f}")
+        print(f"{l = },\t{optimum_value = :.2f},\t{f_solution = :.2f},\t{difference = :.2f}")

@@ -29,14 +29,11 @@ def generate_production_data():
     directive_terms = sorted([random.uniform(10, 100) for _ in range(num_production_factors)])
     t_0 = [float(i) for i in range(num_production_factors)]
     alpha = [random.uniform(1.0, 2) for _ in range(num_production_factors)]
-    omega = [random.uniform(0, 1) for _ in range(num_production_factors)]
-    omega = [np.exp(omega_i) / sum(np.exp(omega)) for omega_i in omega]  # Softmax normalization
-    return production_matrix, y_assigned, b, c, P_m, f, priorities, directive_terms, t_0, alpha, omega
+    return production_matrix, y_assigned, b, c, P_m, f, priorities, directive_terms, t_0, alpha
 
 
 def print_data(data, def_names=(
-        "Production matrix", "Y assigned", "B", "C", "P_m", "F", "Priorities", "Directive terms", "T_0", "Alpha",
-        "Omega")):
+        "Production matrix", "Y assigned", "B", "C", "P_m", "F", "Priorities", "Directive terms", "T_0", "Alpha")):
     """Prints the generated production data in a formatted way."""
     for name, value in zip(def_names, data):
         print(f"{name}:\n{np.round(value, 2)}")
@@ -45,7 +42,7 @@ def print_data(data, def_names=(
 
 def find_temp_optimal_solution(production_data, m):
     """Finds the temporary optimal solution for the given production data."""
-    production_matrix, y_assigned, b, c, _, f, priorities, directive_terms, t_0, alpha, _ = production_data
+    production_matrix, y_assigned, b, c, _, f, priorities, directive_terms, t_0, alpha = production_data
 
     lp_solver = pywraplp.Solver.CreateSolver("GLOP")
 
@@ -77,7 +74,7 @@ def find_temp_optimal_solution(production_data, m):
 
 def solve_production_problem(production_data):
     """Defines and solves the linear programming problem for production optimization."""
-    production_matrix, y_assigned, b, c, P_m, f, priorities, directive_terms, t_0, alpha, omega = production_data
+    production_matrix, y_assigned, b, c, P_m, f, priorities, directive_terms, t_0, alpha = production_data
 
     lp_solver = pywraplp.Solver.CreateSolver("GLOP")
 
@@ -97,10 +94,10 @@ def solve_production_problem(production_data):
     # Define Objective Function
     objective = lp_solver.Objective()
     for i, p_m in enumerate(P_m):
-        for l, o in enumerate(omega):
-            objective.SetCoefficient(y[l], c[i][l] * priorities[l] * o * p_m)
+        for l, p in enumerate(priorities):
+            objective.SetCoefficient(y[l], p_m * c[i][l] * p)
         for l in range(num_assigned_products):
-            objective.SetCoefficient(z[l], -f[l] * p_m)
+            objective.SetCoefficient(z[l], -p_m * f[l])
     objective.SetMaximization()
 
     lp_solver.Solve()
@@ -122,6 +119,8 @@ if __name__ == "__main__":
     names = ["Objective", "Y_solution", "Z_solution", "Policy deadlines", "Completion dates", "Differences"]
     print_data([objective_value, y_solution, z_solution, policy_deadlines, completion_dates, differences], names)
     print("Differences between f_optimum and f_solution:")
+    mean = 0
+    P = test_production_data[4]
     for m in range(M):
         # C_L^T * y_solution - F^T * z_solution
         c_l_m = test_production_data[3][m]
@@ -129,4 +128,6 @@ if __name__ == "__main__":
         f_solution = sum([c_l_m[i] * y_solution[i] for i in range(num_production_factors)]) - sum(
             [f[i] * z_solution[i] for i in range(num_assigned_products)])
         difference = F_optimums[m] - f_solution
-        print(f"{m = },\t{F_optimums[m] = :,.2f},\t{f_solution = :,.2f},\t{difference = :,.2f}")
+        print(f"{m = },\t{F_optimums[m] = :.2f},\t{f_solution = :.2f},\t{difference = :.2f}")
+        mean += P[m] * difference
+    print(f"Mean difference: {mean:.2f}")

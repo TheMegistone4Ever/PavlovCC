@@ -122,4 +122,4 @@ if __name__ == "__main__":
             [f[i] * z_solution[i] for i in range(num_assigned_products)])
         difference = F_optimums[l] - f_solution
         omega_l = test_production_data[-1][l]
-        print(f"{l = },\t{omega_l = :,.2f},\t{F_optimums[l] = :,.2f},\t{f_solution = :,.2f},\t{difference = :,.2f}")
+        print(f"{l = },\t{omega_l = :.2f},\t{F_optimums[l] = :.2f},\t{f_solution = :.2f},\t{difference = :.2f}")

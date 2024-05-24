@@ -139,6 +139,45 @@ if __name__ == "__main__":
     names = ["Objective", "Y_solution", "Z_solution", "Policy deadlines", "Completion dates", "Differences"]
     print_data([objective_value, y_solution, z_solution, policy_deadlines, completion_dates, differences], names)
     print("Differences between f_optimum and f_solution:")
+
+    F_L_M_optimums = test_production_data[-2]
+
+    print("F_L_M_optimums:")
+    print("\t", end="\t")
+    for l in range(L):
+        print(f"{l = }", end="\t\t")
+    print()
+    for m in range(M_L):
+        print(f"{m = }", end="\t")
+        for l in range(L):
+            print(f"{F_L_M_optimums[m][l]:.2f}", end="\t")
+        print()
+
+    print("\nDifferences between f_optimum and f_solution:")
+    print("\t", end="\t\t")
+    for l in range(L):
+        print(f"{l = }", end="\t\t\t")
+    print()
+
+    c = test_production_data[3]
+    f = test_production_data[4]
+
+    for m in range(M_L):
+        print(f"{m = }", end="\t")
+        for l in range(L):
+
+            inner_difference = 0
+
+            for i in range(num_assigned_products):
+                inner_difference += c[m][l][i] * y_solution[i] - f[i] * z_solution[i]
+            optimum_value = F_L_M_optimums[m][l]
+
+            difference = optimum_value - inner_difference
+
+            print(f"{difference:12.2f}", end="\t")
+        print()
+
+    print("\nMean differences:")
     for l in range(L):
         F_L_M_optimums = test_production_data[-2]
         mean_difference = 0
@@ -155,5 +194,5 @@ if __name__ == "__main__":
             weighted_optimum_values += P_L[m] * optimum_value
             weighted_inner_differences += P_L[m] * inner_difference
         mean_difference = weighted_optimum_values - weighted_inner_differences
-        print(f"{l = },\tomega_l = {test_production_data[-3][l]:,.2f},\t{weighted_optimum_values = :,.2f}"
-              f",\t{weighted_inner_differences = :,.2f},\t{mean_difference = :,.2f}")
+        print(f"{l = },\t{weighted_optimum_values = :.2f}"
+              f",\t{weighted_inner_differences = :.2f},\t{mean_difference = :.2f}")
