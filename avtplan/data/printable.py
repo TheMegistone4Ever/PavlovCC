@@ -1,4 +1,5 @@
 from numpy import set_printoptions
+from numpy.random import RandomState
 
 
 class PrintableDataMixin:
@@ -19,3 +20,16 @@ class PrintableDataMixin:
         for name, value in zip(def_names, self.__dict__.values()):
             print(f"{name}:\n{value}\n\n{'=' * 200}\n")
         set_printoptions(linewidth=75, precision=8)
+
+
+def get_random_by_seed(seed: int):
+    """
+    Returns a random number generator with the given seed.
+
+    :param seed: Seed for the random number generator.
+    :type seed: int
+    :return: Random number generator with the given seed.
+    :rtype: np.random.RandomState
+    """
+
+    return RandomState(seed)
