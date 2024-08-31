@@ -27,7 +27,7 @@ def generate_production_data():
     directive_terms = sorted([random.uniform(1, 100) for _ in range(num_production_factors)])
     t_0 = [float(i) for i in range(num_production_factors)]
     alpha = [random.uniform(1.0, 2) for _ in range(num_production_factors)]
-    omega = [random.uniform(0, 1) for _ in range(L)]
+    omega = [random.uniform(.5, 1) for _ in range(L)]
     omega = [np.exp(omega_i) / sum(np.exp(omega)) for omega_i in omega]  # Softmax normalization
     return production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha, omega
 
@@ -82,13 +82,10 @@ def solve_production_problem(production_data):
     y = [lp_solver.NumVar(0, lp_solver.infinity(), f"y_{i}") for i in range(num_production_factors)]
     z = [lp_solver.NumVar(0, lp_solver.infinity(), f"z_{i}") for i in range(num_assigned_products)]
 
-    # Define Constraints
     for i in range(num_aggregated_products):
         lp_solver.Add(sum(production_matrix[i][j] * y[j] for j in range(num_production_factors)) <= b[i])
     for i in range(num_assigned_products):
-        lp_solver.Add(z[i] >= 0)
         lp_solver.Add((t_0[i] + alpha[i] * y[i]) - z[i] <= directive_terms[i])
-    for i in range(num_assigned_products):
         lp_solver.Add(y[i] >= y_assigned[i])
 
     # Define Objective Function
@@ -118,9 +115,17 @@ if __name__ == "__main__":
     names = ["Objective", "Y_solution", "Z_solution", "Policy deadlines", "Completion dates", "Differences"]
     print_data([objective_value, y_solution, z_solution, policy_deadlines, completion_dates, differences], names)
     print("Differences between f_optimum and f_solution:")
+    f = test_production_data[4]
+    c = test_production_data[3]
     for l in range(L):
-        optimum_value = find_optimal_solution(test_production_data, l)[2]
-        f_solution = sum(test_production_data[3][l][i] * y_solution[i] for i in range(num_production_factors)) - sum(
-            test_production_data[4][i] * z_solution[i] for i in range(num_assigned_products))
-        difference = optimum_value - f_solution
-        print(f"{l = },\t{optimum_value = :.2f},\t{f_solution = :.2f},\t{difference = :.2f}")
+        f_optimum = find_optimal_solution(test_production_data, l)[-1]
+        f_solution = float(np.dot(c[l], y_solution) - np.dot(f, z_solution))
+        print(f"{l=},\t{f_optimum=:,.2f},\t{f_solution=:,.2f},\tdiff={f_optimum - f_solution:,.2f}")
+
+    # plot diffs
+    import matplotlib.pyplot as plt
+
+    plt.plot([find_optimal_solution(test_production_data, l)[-1] for l in range(L)], label="Optimum")
+    plt.plot([float(np.dot(c[l], y_solution) - np.dot(f, z_solution)) for l in range(L)], label="Solution")
+    plt.legend()
+    plt.show()
