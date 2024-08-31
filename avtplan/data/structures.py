@@ -278,7 +278,7 @@ class ProductionDataWithPm(ProductionData):
 @dataclass
 class ProductionDataWithAPlusAMinus(ProductionDataWithOmega):
     """
-    Represents the base data for an Aggregated Volume-Time Production Model (AVTM) with additional A+ and A- values.
+    Represents the base data for an Aggregated Volume-Time Production Model (AVTM) with additional "A+" and "A-" values.
 
     This data structure encapsulates the parameters required for modeling and optimizing
     production schedules in a discrete production system, considering both volume and time constraints.

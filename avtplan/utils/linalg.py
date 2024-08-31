@@ -7,7 +7,8 @@ def softmax(x: ndarray) -> ndarray:
 
     :param x: The input vector.
     :type x: ndarray
-    :return: The vector, where each element is greater than or equal to zero and the sum of all elements is equal to one.
+    :return: The vector, where each element is greater than or equal to zero,
+    and the sum of all elements is equal to one.
     :rtype: ndarray
     """
 
