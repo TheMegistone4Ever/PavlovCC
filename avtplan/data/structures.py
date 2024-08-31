@@ -3,7 +3,7 @@ from typing import Callable
 
 import numpy as np
 
-from avtplan.data import PrintableDataMixin, softmax, get_random_by_seed
+from avtplan.utils import PrintableDataMixin, softmax, get_random_by_seed
 
 rand = get_random_by_seed(1810)
 
