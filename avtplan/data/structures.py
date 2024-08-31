@@ -3,22 +3,13 @@ from typing import Callable
 
 import numpy as np
 
+from avtplan.data import PrintableDataMixin, softmax
+
 rand = np.random.RandomState(1810)
 
 
-def softmax(x: np.ndarray) -> np.ndarray:
-    """
-    Computes the softmax function for the given input vector.
-    
-    :param x: The input vector.
-    :return: The vector, where each element is greater than or equal to zero and the sum of all elements is equal to one.
-    """
-
-    return (e_x := np.exp(x - np.max(x))) / e_x.sum()
-
-
 @dataclass
-class ProductionData:
+class ProductionData(PrintableDataMixin):
     """
     Represents the base data for an Aggregated Volume-Time Production Model (AVTM).
 
@@ -99,13 +90,8 @@ class ProductionData:
         """
         Prints the generated production data in a formatted way.
         """
-        np.set_printoptions(linewidth=255, precision=2)
 
-        for name, value in zip(def_names, self.__dict__.values()):
-            print(f"{name}:\n{value}")
-            print("=" * 100)
-
-        np.set_printoptions(linewidth=75, precision=8)
+        self._print_data(def_names)
 
 
 @dataclass
@@ -163,13 +149,7 @@ class ProductionDataWithOmega(ProductionData):
         Prints the generated production data in a formatted way.
         """
 
-        np.set_printoptions(linewidth=255, precision=2)
-
-        for name, value in zip(def_names, self.__dict__.values()):
-            print(f"{name}:\n{value}")
-            print("=" * 100)
-
-        np.set_printoptions(linewidth=75, precision=8)
+        self._print_data(def_names)
 
 
 @dataclass
@@ -235,13 +215,7 @@ class ProductionDataWithCL(ProductionDataWithOmega):
         Prints the generated production data in a formatted way.
         """
 
-        np.set_printoptions(linewidth=255, precision=2)
-
-        for name, value in zip(def_names, self.__dict__.values()):
-            print(f"{name}:\n{value}")
-            print("=" * 100)
-
-        np.set_printoptions(linewidth=75, precision=8)
+        self._print_data(def_names)
 
 
 @dataclass
@@ -298,13 +272,7 @@ class ProductionDataWithPm(ProductionData):
         Prints the generated production data in a formatted way.
         """
 
-        np.set_printoptions(linewidth=255, precision=2)
-
-        for name, value in zip(def_names, self.__dict__.values()):
-            print(f"{name}:\n{value}")
-            print("=" * 100)
-
-        np.set_printoptions(linewidth=75, precision=8)
+        self._print_data(def_names)
 
 
 @dataclass
@@ -365,13 +333,7 @@ class ProductionDataWithAPlusAMinus(ProductionDataWithOmega):
         Prints the generated production data in a formatted way.
         """
 
-        np.set_printoptions(linewidth=255, precision=2)
-
-        for name, value in zip(def_names, self.__dict__.values()):
-            print(f"{name}:\n{value}")
-            print("=" * 100)
-
-        np.set_printoptions(linewidth=75, precision=8)
+        self._print_data(def_names)
 
 
 if __name__ == "__main__":
