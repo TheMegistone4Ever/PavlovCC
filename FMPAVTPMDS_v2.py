@@ -121,8 +121,6 @@ def main():
         ax.legend()
         plt.show()
 
-    #     plot graph with bars - diffs - blue if >=0 else red
-
         fig, ax = plt.subplots()
         ax.bar([l for l in range(L)], diffs, color=['blue' if diff >= 0 else 'red' for diff in diffs])
         plt.show()
