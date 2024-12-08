@@ -8,7 +8,7 @@ np.random.seed(1810)
 
 # Constants
 num_aggregated_products = 20  # m
-num_production_factors = 10  # n
+# num_production_factors = 10  # n
 num_assigned_products = 9  # n1
 L = 5
 
@@ -100,7 +100,9 @@ def solve_production_problem(production_data):
         num_assigned_products)], objective.Value()
 
 
-if __name__ == "__main__":
+def main(N):
+    global num_production_factors
+    num_production_factors = N
     test_production_data = generate_production_data()
     F_optimums = [find_temp_optimal_solution(test_production_data, l)[2] for l in range(L)]
     print_data(test_production_data)

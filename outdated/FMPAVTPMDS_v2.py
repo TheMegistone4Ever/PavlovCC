@@ -1,156 +1,98 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from ortools.linear_solver import pywraplp
 
+# Constants for data generation
+NUM_RESOURCES = 20
+NUM_PRODUCTS = 30
+NUM_AGGREGATED_PRODUCTS = 9
+NUM_LINEAR_FUNCTIONS = 7
+
+# Seed for reproducibility
 np.random.seed(1810)
 
-import matplotlib.pyplot as plt
+
+def generate_data():
+    """Generates random data for the optimization problem."""
+    A = np.random.rand(NUM_RESOURCES, NUM_PRODUCTS)
+    b = np.random.rand(NUM_RESOURCES) * 10000
+    C = np.random.rand(NUM_LINEAR_FUNCTIONS, NUM_PRODUCTS) * 10
+    f = np.random.rand(NUM_AGGREGATED_PRODUCTS)
+    priorities = np.ones(NUM_PRODUCTS)  # Not used in the current code
+    D = np.random.rand(NUM_AGGREGATED_PRODUCTS) * 100
+    t_0 = np.arange(NUM_AGGREGATED_PRODUCTS)
+    alpha = np.random.rand(NUM_AGGREGATED_PRODUCTS) * 2
+    omega = np.random.rand(NUM_LINEAR_FUNCTIONS) * 0.1
+    return A, b, C, f, D, t_0, alpha, omega
 
 
-def main():
-    # Data Generation
-    m = 20  # Number of resources
-    n = 30  # Number of products
-    n_1 = 9  # Number of aggregated products
-    L = 5  # Number of linear functions
+def print_data(A, b, C, f, D, t_0, alpha, omega):
+    """Prints the generated data."""
+    print("Production matrix (A):\n", A)
+    print("\nResource limits (b):\n", b)
+    print("\nCost coefficients (C):\n", C)
+    print("\nAggregation coefficients (f):\n", f)
+    print("\nDirective terms (D):\n", D)
+    print("\nInitial completion times (t_0):\n", t_0)
+    print("\nAlpha coefficients (alpha):\n", alpha)
+    print("\nOmega coefficients (omega):\n", omega)
 
-    A = np.random.rand(m, n)
-    b = np.random.rand(m) * 10000
-    C = np.random.rand(L, n) * 10
-    f = np.random.rand(n_1)
-    priorities = np.ones(n)
-    D = np.random.rand(n_1) * 100
-    t_0 = np.arange(n)
-    alpha = np.random.rand(n_1) * 2
-    omega = np.random.rand(L) * 0.1
 
-    # Print generated data
-    print("Production matrix:")
-    print(A)
-    print("====================================================================================================")
-    print("B:")
-    print(b)
-    print("====================================================================================================")
-    print("C:")
-    print(C)
-    print("====================================================================================================")
-    print("F:")
-    print(f)
-    print("====================================================================================================")
-    print("Priorities:")
-    print(priorities)
-    print("====================================================================================================")
-    print("Directive terms:")
-    print(D)
-    print("====================================================================================================")
-    print("T_0:")
-    print(t_0)
-    print("====================================================================================================")
-    print("Alpha:")
-    print(alpha)
-    print("====================================================================================================")
-    print("Omega:")
-    print(omega)
-    print("====================================================================================================")
-
-    # Create the linear solver using the GLOP backend.
+def solve_problem(A, b, C, f, D, t_0, alpha, omega):
+    """Solves the linear optimization problem."""
     solver = pywraplp.Solver.CreateSolver('GLOP')
 
     # Variables
-    y = [solver.NumVar(0, solver.infinity(), f'y_{i}') for i in range(n)]
-    z = [solver.NumVar(0, solver.infinity(), f'z_{i}') for i in range(n_1)]
+    y = [solver.NumVar(0, solver.infinity(), f'y_{i}') for i in range(NUM_PRODUCTS)]
+    z = [solver.NumVar(0, solver.infinity(), f'z_{i}') for i in range(NUM_AGGREGATED_PRODUCTS)]
 
     # Constraints
-    for i in range(m):
-        solver.Add(solver.Sum([A[i][j] * y[j] for j in range(n)]) <= b[i])
+    for i in range(NUM_RESOURCES):
+        solver.Add(solver.Sum([A[i][j] * y[j] for j in range(NUM_PRODUCTS)]) <= b[i])
 
-    for i in range(n_1):
+    for i in range(NUM_AGGREGATED_PRODUCTS):
         T_i = t_0[i] + alpha[i] * y[i]
         solver.Add(T_i - z[i] <= D[i])
 
     # Objective
     objective = solver.Objective()
-    for l in range(L):
-        f_opt_l = find_f_opt(A, b, C[l], f, D, t_0, alpha, n, n_1, solver)
+    for l in range(NUM_LINEAR_FUNCTIONS):
+        f_opt_l = find_f_opt(A, b, C[l], f, D, t_0, alpha)
         objective.SetCoefficient(y[l], omega[l] * C[l][l])
-        for i in range(n_1):
+        for i in range(NUM_AGGREGATED_PRODUCTS):
             objective.SetCoefficient(z[i], -omega[l] * f[i])
-        dummy_variable = solver.NumVar(0, 0, f'dummy_{l}')
-        objective.SetCoefficient(dummy_variable, -omega[l] * f_opt_l)
+        # Dummy variable (not affecting the solution)
+        # dummy_variable = solver.NumVar(0, 0, f'dummy_{l}')
+        # objective.SetCoefficient(dummy_variable, -omega[l] * f_opt_l)
 
     objective.SetMaximization()
 
     # Solve
     status = solver.Solve()
-
-    # Print solution
-    if status == pywraplp.Solver.OPTIMAL:
-        print('Detailed results:')
-        print('Objective:')
-        print(objective.Value())
-        print("====================================================================================================")
-        print("Y_solution:")
-        print([y[i].solution_value() for i in range(n)])
-        print("====================================================================================================")
-        print("Z_solution:")
-        print([z[i].solution_value() for i in range(n_1)])
-        print("====================================================================================================")
-        print("Policy deadlines:")
-        print([D[i] for i in range(n_1)])
-        print("====================================================================================================")
-        print("Completion dates:")
-        print([t_0[i] + alpha[i] * y[i].solution_value() for i in range(n_1)])
-        print("====================================================================================================")
-        print("Differences:")
-        print([D[i] - (t_0[i] + alpha[i] * y[i].solution_value()) for i in range(n_1)])
-        print("====================================================================================================")
-        print("Differences between f_optimum and f_solution:")
-        diffs = []
-        for l in range(L):
-            f_opt_l = find_f_opt(A, b, C[l], f, D, t_0, alpha, n, n_1, solver)
-            f_solution_l = C[l] @ np.array([y[i].solution_value() for i in range(n)]) - f @ np.array(
-                [z[i].solution_value() for i in range(n_1)])
-            diff = f_opt_l - f_solution_l
-            diffs.append(diff)
-            print(f'l={l},\tf_optimum={f_opt_l:.2f},\tf_solution={f_solution_l:.2f},\t{diff=:.2f}')
-
-        fig, ax = plt.subplots()
-        ax.plot([l for l in range(L)], [find_f_opt(A, b, C[l], f, D, t_0, alpha, n, n_1, solver) for l in range(L)],
-                label='f_optimum')
-        ax.plot([l for l in range(L)], [C[l] @ np.array([y[i].solution_value() for i in range(n)]) - f @ np.array(
-            [z[i].solution_value() for i in range(n_1)]) for l in range(L)], label='f_solution')
-        ax.legend()
-        plt.show()
-
-        fig, ax = plt.subplots()
-        ax.bar([l for l in range(L)], diffs, color=['blue' if diff >= 0 else 'red' for diff in diffs])
-        plt.show()
+    return solver, y, z, status
 
 
-    else:
-        print('The problem does not have an optimal solution.')
-
-
-def find_f_opt(A, b, c_l, f, D, t_0, alpha, n, n_1, solver):
-    # Create a new solver for each f_opt calculation
+def find_f_opt(A, b, c_l, f, D, t_0, alpha):
+    """Calculates the optimal value of f for a given linear function."""
     solver_f_opt = pywraplp.Solver.CreateSolver('GLOP')
 
     # Variables
-    y_f_opt = [solver_f_opt.NumVar(0, solver_f_opt.infinity(), f'y_{i}') for i in range(n)]
-    z_f_opt = [solver_f_opt.NumVar(0, solver_f_opt.infinity(), f'z_{i}') for i in range(n_1)]
+    y_f_opt = [solver_f_opt.NumVar(0, solver_f_opt.infinity(), f'y_{i}') for i in range(NUM_PRODUCTS)]
+    z_f_opt = [solver_f_opt.NumVar(0, solver_f_opt.infinity(), f'z_{i}') for i in range(NUM_AGGREGATED_PRODUCTS)]
 
     # Constraints
-    for i in range(len(A)):
-        solver_f_opt.Add(solver_f_opt.Sum([A[i][j] * y_f_opt[j] for j in range(n)]) <= b[i])
+    for i in range(NUM_RESOURCES):
+        solver_f_opt.Add(solver_f_opt.Sum([A[i][j] * y_f_opt[j] for j in range(NUM_PRODUCTS)]) <= b[i])
 
-    for i in range(n_1):
+    for i in range(NUM_AGGREGATED_PRODUCTS):
         T_i = t_0[i] + alpha[i] * y_f_opt[i]
         solver_f_opt.Add(T_i - z_f_opt[i] <= D[i])
 
     # Objective
     objective_f_opt = solver_f_opt.Objective()
-    for i in range(n):
+    for i in range(NUM_PRODUCTS):
         objective_f_opt.SetCoefficient(y_f_opt[i], c_l[i])
-    for i in range(n_1):
+    for i in range(NUM_AGGREGATED_PRODUCTS):
         objective_f_opt.SetCoefficient(z_f_opt[i], -f[i])
 
     objective_f_opt.SetMaximization()
@@ -159,6 +101,70 @@ def find_f_opt(A, b, c_l, f, D, t_0, alpha, n, n_1, solver):
     solver_f_opt.Solve()
 
     return objective_f_opt.Value()
+
+
+def print_solution(solver, y, z, D, t_0, alpha, C, f):
+    """Prints the solution of the optimization problem."""
+    if solver.Solve() == pywraplp.Solver.OPTIMAL:
+        print('Solution:')
+        print('Objective value =', solver.Objective().Value())
+        print("\nProduction quantities (y):")
+        for i in range(NUM_PRODUCTS):
+            print(f'y_{i} = {y[i].solution_value()}')
+
+        print("\nAggregated product completion times (z):")
+        for i in range(NUM_AGGREGATED_PRODUCTS):
+            print(f'z_{i} = {z[i].solution_value()}')
+
+        print("\nPolicy deadlines (D):\n", D)
+        print("\nCompletion dates (T):")
+        for i in range(NUM_AGGREGATED_PRODUCTS):
+            print(f'T_{i} = {t_0[i] + alpha[i] * y[i].solution_value()}')
+
+        print("\nDifferences (D - T):")
+        for i in range(NUM_AGGREGATED_PRODUCTS):
+            print(f'D_{i} - T_{i} = {D[i] - (t_0[i] + alpha[i] * y[i].solution_value())}')
+
+        print("\nComparison of f_optimum and f_solution:")
+        diffs = []
+        for l in range(NUM_LINEAR_FUNCTIONS):
+            f_opt_l = find_f_opt(A, b, C[l], f, D, t_0, alpha)
+            f_solution_l = C[l] @ np.array([y[i].solution_value() for i in range(NUM_PRODUCTS)]) - f @ np.array(
+                [z[i].solution_value() for i in range(NUM_AGGREGATED_PRODUCTS)])
+            diff = f_opt_l - f_solution_l
+            diffs.append(diff)
+            print(f'l={l}, f_optimum={f_opt_l:.2f}, f_solution={f_solution_l:.2f}, difference={diff:.2f}')
+
+        # Plotting the results (optional)
+        plot_results(C, f, y, z, diffs)
+    else:
+        print('The problem does not have an optimal solution.')
+
+
+def plot_results(C, f, y, z, diffs):
+    """Plots the comparison of f_optimum and f_solution."""
+    fig, ax = plt.subplots()
+    f_optimum_values = [find_f_opt(A, b, C[l], f, D, t_0, alpha) for l in range(NUM_LINEAR_FUNCTIONS)]
+    f_solution_values = [C[l] @ np.array([y[i].solution_value() for i in range(NUM_PRODUCTS)]) - f @ np.array(
+        [z[i].solution_value() for i in range(NUM_AGGREGATED_PRODUCTS)]) for l in range(NUM_LINEAR_FUNCTIONS)]
+    ax.plot(range(NUM_LINEAR_FUNCTIONS), f_optimum_values, label='f_optimum')
+    ax.plot(range(NUM_LINEAR_FUNCTIONS), f_solution_values, label='f_solution')
+    ax.legend()
+    plt.title("Comparison of f_optimum and f_solution")
+    plt.show()
+
+    fig, ax = plt.subplots()
+    ax.bar(range(NUM_LINEAR_FUNCTIONS), diffs, color=['blue' if diff >= 0 else 'red' for diff in diffs])
+    plt.title("Differences between f_optimum and f_solution")
+    plt.show()
+
+A, b, C, f, D, t_0, alpha, omega = generate_data()
+
+def main():
+    print_data(A, b, C, f, D, t_0, alpha, omega)
+    solver, y, z, status = solve_problem(A, b, C, f, D, t_0, alpha, omega)
+    if status == pywraplp.Solver.OPTIMAL:
+        print_solution(solver, y, z, D, t_0, alpha, C, f)
 
 
 if __name__ == '__main__':
