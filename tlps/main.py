@@ -207,7 +207,7 @@ class TwoLevelPlanningSystem:
 
     def create_detailed_results_table(self, results):
         """
-        Create a comprehensive table of results and input data
+        Create a comprehensive table of results and input data with tabulation and rounding
 
         Args:
             results (list): List of solution results
@@ -221,39 +221,50 @@ class TwoLevelPlanningSystem:
         full_output.append("\n=== Input Data Details ===")
         for result in results:
             full_output.append(f"\n{result['model']} - Input Data Details")
-
-            # Custom table formatting
-            full_output.append("Attribute | Value")
-            full_output.append("-" * 50)
+            full_output.append(f"{'Attribute':<20} | {'Value':<50}")
+            full_output.append("-" * 75)
             for key, value in result['data_details'].items():
-                value_str = str(value)
-                full_output.append(f"{key} | {value_str}")
+                if isinstance(value, np.ndarray):
+                    if value.ndim == 1:
+                        value_str = np.array2string(value, formatter={'float_kind': lambda x: f"{x:.4f}"},
+                                                    separator=', ')
+                    elif value.ndim == 2:
+                        value_str = '\n' + np.array2string(value, formatter={'float_kind': lambda x: f"{x:.4f}"},
+                                                           separator=', ')
+                    else:
+                        value_str = str(value)
+                elif isinstance(value, list):
+                    value_str = ", ".join([f"{x:.4f}" if isinstance(x, (float, int)) else str(x) for x in value])
+                else:
+                    value_str = f"{value:.4f}" if isinstance(value, (float, int)) else str(value)
+                full_output.append(f"{key:<20} | {value_str:<50}")
 
         # Results Table
         full_output.append("\n=== Solution Results ===")
-        full_output.append("Model | Objective Value | Solutions")
-        full_output.append("-" * 50)
+        full_output.append(f"{'Model':<25} | {'Objective Value':<18} | {'Solutions':<50}")
+        full_output.append("-" * 95)
         for result in results:
             model_name = result['model']
             solution = result['solution']
 
-            # Handle different model outputs
             if model_name == 'Model 1 (FLAVTPM)':
                 y_solution, z_solution, objective_value = solution
-                y_str = str(y_solution)
-                full_output.append(f"{model_name} | {objective_value:.4f} | {y_str}")
+                y_str = np.array2string(np.array(y_solution), formatter={'float_kind': lambda x: f"{x:.4f}"},
+                                        separator=', ')
+                full_output.append(f"{model_name:<25} | {objective_value:<18.4f} | {y_str:<50}")
 
             elif model_name == 'Model 2 (FMPAVTPMDS_v2)':
-                solver, y, z, status = solution
+                solver, y, z, _ = solution
                 y_sol = [y[i].solution_value() for i in range(len(y))]
-                y_str = str(np.array(y_sol))
+                y_str = np.array2string(np.array(y_sol), formatter={'float_kind': lambda x: f"{x:.4f}"}, separator=', ')
                 full_output.append(
-                    f"{model_name} | {solver.Objective().Value():.4f} | Status: {status}, Y Sol: {y_str}")
+                    f"{model_name:<25} | {solver.Objective().Value():<18.4f} | {y_str:<50}")
 
             elif model_name == 'Model 3 (MPLAVTPM_2)':
                 y_solution, u_plus_solution, u_minus_solution, objective_value = solution
-                y_str = str(y_solution)
-                full_output.append(f"{model_name} | {objective_value:.4f} | {y_str}")
+                y_str = np.array2string(np.array(y_solution), formatter={'float_kind': lambda x: f"{x:.4f}"},
+                                        separator=', ')
+                full_output.append(f"{model_name:<25} | {objective_value:<18.4f} | {y_str:<50}")
 
         return "\n".join(full_output)
 
