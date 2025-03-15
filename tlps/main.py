@@ -19,6 +19,7 @@ class DataGenerator:
     @staticmethod
     def generate_controlled_random_data(
             dimension: int,
+            num_elements: int,
             seed: Optional[int] = None,
             distribution: str = 'uniform'
     ) -> Dict[str, Any]:
@@ -27,6 +28,7 @@ class DataGenerator:
 
         Args:
             dimension (int): Dimension of the data
+            num_elements (int): Number of elements in the system
             seed (int, optional): Random seed for reproducibility
             distribution (str): Type of distribution ('uniform', 'normal', 'exponential')
 
@@ -44,6 +46,10 @@ class DataGenerator:
         }
 
         gen_func = generators.get(distribution, np.random.uniform)
+
+        # New matrices for expert coefficients and element-level plans
+        y_L_K = gen_func(1, 100, (num_elements, dimension))
+        D_L_K = gen_func(0.1, 1, (num_elements, dimension))
 
         # Model 1 specific data generation
         production_matrix_1 = gen_func(0.1, 1, (4, dimension))
@@ -87,13 +93,15 @@ class DataGenerator:
                 production_matrix_1, y_assigned_1, b_1, c_1, f_1, priorities_1, directive_terms_1, t_0_1, alpha_1),
             'model2': (A_2, b_2, C_2, f_2, D_2, t_0_2, alpha_2, omega_2),
             'model3': (production_matrix_3, y_assigned_3, b_3, c_3, priorities_3, directive_terms_3,
-                       t_0_3, alpha_3, omega_3, a_plus_3, a_minus_3)
+                       t_0_3, alpha_3, omega_3, a_plus_3, a_minus_3),
+            'expert_matrices': (y_L_K, D_L_K)
         }
 
 
 class TwoLevelPlanningSystem:
     def __init__(
             self,
+            delta: int = 100,
             dimension: int = 5,
             num_elements: int = 3,
             seed: Optional[int] = 1810,
@@ -111,6 +119,7 @@ class TwoLevelPlanningSystem:
         if dimension > 5:
             raise ValueError("Dimension must be 5 or less")
 
+        self.delta = delta
         self.dimension = dimension
         self.num_elements = num_elements
         self.seed = seed
@@ -156,9 +165,13 @@ class TwoLevelPlanningSystem:
         """
         data = DataGenerator.generate_controlled_random_data(
             self.dimension,
+            self.num_elements,
             seed=self.seed,
             distribution=self.distribution
         )
+
+        # Extract expert matrices
+        y_L_K, D_L_K = data['expert_matrices']
 
         element_data = [
             {
@@ -200,6 +213,14 @@ class TwoLevelPlanningSystem:
                 },
                 'data': data['model3'],
                 'solver_func': solve_model3
+            },
+            {
+                'model': 'Expert Coefficient Matrices',
+                'data_details': {
+                    'y_L_K': self._format_value(y_L_K),
+                    'D_L_K': self._format_value(D_L_K)
+                },
+                'data': (y_L_K, D_L_K)
             }
         ]
 
@@ -245,6 +266,11 @@ class TwoLevelPlanningSystem:
         full_output.append("-" * 95)
         for result in results:
             model_name = result['model']
+
+            # Skip the Expert Coefficient Matrices result
+            if model_name == 'Expert Coefficient Matrices':
+                continue
+
             solution = result['solution']
 
             if model_name == 'Model 1 (FLAVTPM)':
@@ -265,6 +291,58 @@ class TwoLevelPlanningSystem:
                 y_str = np.array2string(np.array(y_solution), formatter={'float_kind': lambda x: f"{x:.4f}"},
                                         separator=', ')
                 full_output.append(f"{model_name:<25} | {objective_value:<18.4f} | {y_str:<50}")
+
+        # Expert Matrix Analysis Table
+        full_output.append("\n=== Expert Matrix Analysis ===")
+        full_output.append(f"{'Element':<10} | {'D_L^T x y_L':<20} | {'Sum(f_j_l * z_j_l)':<25} | {'Difference':<15}")
+        full_output.append("-" * 75)
+
+        # Find expert matrices
+        expert_matrices = next((result for result in results if result.get('model') == 'Expert Coefficient Matrices'),
+                               None)
+        if expert_matrices:
+            y_L_K, D_L_K = expert_matrices['data']
+
+            # Compute differences for each element
+            for i in range(self.num_elements):
+                # In a real implementation, you'd use actual solver results for z_j_l
+                # Here, we'll use a placeholder computation
+                D_L_i = D_L_K[i]
+                y_L_i = y_L_K[i]
+
+                # Placeholder computations - replace with actual solver logic
+                D_L_T_x_y_L = np.dot(D_L_i, y_L_i)
+                sum_f_j_l_z_j_l = np.sum(np.random.uniform(0, 1, self.dimension))  # Placeholder
+
+                difference = D_L_T_x_y_L - sum_f_j_l_z_j_l
+
+                full_output.append(
+                    f"{f'Element {i + 1}':<10} | {D_L_T_x_y_L:<20.4f} | {sum_f_j_l_z_j_l:<25.4f} | {difference:<15.4f}"
+                )
+
+        full_output.append(f"\n=== Criteria №2[d={self.delta}] ===")
+        full_output.append(f"{'Element':<10} | {'D_L^T x y_L':<20} | {'Sum(f_j_l * z_j_l)':<25} | {'Difference':<15}")
+        full_output.append("-" * 75)
+        if expert_matrices:
+            differences = []
+            for i in range(self.num_elements):
+                D_L_i = D_L_K[i]
+                y_L_i = y_L_K[i]
+
+                D_L_T_x_y_L = np.dot(D_L_i, y_L_i)
+                sum_f_j_l_z_j_l = np.sum(np.random.uniform(0, 1, self.dimension))  # Placeholder
+
+                difference = float(D_L_T_x_y_L - sum_f_j_l_z_j_l)
+                differences.append(difference)
+
+            min_difference = min(differences)
+            for i, difference in enumerate(differences):
+                if difference <= min_difference + self.delta:
+                    D_L_T_x_y_L = np.dot(D_L_K[i], y_L_K[i])
+                    sum_f_j_l_z_j_l = np.sum(np.random.uniform(0, 1, self.dimension))  # Placeholder
+                    full_output.append(
+                        f"{f'Element {i + 1}':<10} | {D_L_T_x_y_L:<20.4f} | {sum_f_j_l_z_j_l:<25.4f} | {difference:<15.4f}"
+                    )
 
         return "\n".join(full_output)
 
@@ -305,6 +383,11 @@ class TwoLevelPlanningSystem:
 
         for element in element_data:
             try:
+                # Skip expert matrices in solving
+                if element['model'] == 'Expert Coefficient Matrices':
+                    results.append(element)
+                    continue
+
                 # Call the specific solver function for each model
                 solution = element['solver_func'](*element['data'])
 
@@ -333,6 +416,11 @@ class TwoLevelPlanningSystem:
 
         for result in results:
             model_name = result['model']
+
+            # Skip expert matrices visualization
+            if model_name == 'Expert Coefficient Matrices':
+                continue
+
             solution = result['solution']
 
             if model_name == 'Model 1 (FLAVTPM)':
@@ -361,6 +449,7 @@ def main():
         distribution='uniform'
     )
     results = planning_system.run_planning_system()
+    planning_system.visualize_results(results['results'])
 
 
 if __name__ == '__main__':

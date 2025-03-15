@@ -7,9 +7,9 @@ random.seed(1810)
 np.random.seed(1810)
 
 # Constants
-num_aggregated_products = 20  # m
-# num_production_factors = 10  # n
-num_assigned_products = 9  # n1
+num_aggregated_products = 4  # m
+num_production_factors = 5  # n
+num_assigned_products = 3  # n1
 L = 5
 
 
@@ -143,6 +143,18 @@ def main(N):
         difference = F_optimums[l] - f_solution
         omega_l = test_production_data[-3][l]
         print(f"{l = },\t{omega_l = :.2f},\t{F_optimums[l] = :.2f},\t{f_solution = :.2f},\t{difference = :.2f}")
+
+
+def solve_and_return_solution(production_matrix, y_assigned, b, c, priorities, directive_terms,
+                              t_0, alpha, omega, a_plus, a_minus):
+    # Create the production data tuple
+    test_production_data = (production_matrix, y_assigned, b, c, priorities, directive_terms, t_0, alpha, omega,
+                            a_plus, a_minus)
+
+    # Solve the production problem
+    y_solution, u_plus_solution, u_minus_solution, objective_value = solve_production_problem(test_production_data)
+
+    return y_solution, u_plus_solution, u_minus_solution, objective_value
 
 
 if __name__ == '__main__':

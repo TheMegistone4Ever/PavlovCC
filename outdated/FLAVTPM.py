@@ -9,9 +9,9 @@ random.seed(1810)
 np.random.seed(1810)
 
 # Constants
-num_aggregated_products = 20  # m
-# num_production_factors = 10  # n
-num_assigned_products = 9  # n1
+num_aggregated_products = 4  # m
+num_production_factors = 5  # n
+num_assigned_products = 3  # n1
 
 
 def generate_production_data():
@@ -81,6 +81,17 @@ def main(N):
     differences = [policy_deadlines[i] - completion_dates[i] for i in range(num_assigned_products)]
     names = ["Objective", "Y_solution", "Z_solution", "Policy deadlines", "Completion dates", "Differences"]
     print_data([objective_value, y_solution, z_solution, policy_deadlines, completion_dates, differences], names)
+
+
+def solve_and_return_solution(production_matrix, y_assigned, b, c, f, priorities,
+                              directive_terms, t_0, alpha):
+    # Create the production data tuple
+    test_production_data = (production_matrix, y_assigned, b, c, f, priorities, directive_terms, t_0, alpha)
+
+    # Solve the production problem
+    y_solution, z_solution, objective_value = solve_production_problem(test_production_data)
+
+    return y_solution, z_solution, objective_value
 
 
 if __name__ == '__main__':

@@ -3,10 +3,10 @@ import numpy as np
 from ortools.linear_solver import pywraplp
 
 # Constants for data generation
-NUM_RESOURCES = 20
-NUM_PRODUCTS = 30
-NUM_AGGREGATED_PRODUCTS = 9
-NUM_LINEAR_FUNCTIONS = 7
+NUM_RESOURCES = 4
+NUM_PRODUCTS = 5
+NUM_AGGREGATED_PRODUCTS = 3
+NUM_LINEAR_FUNCTIONS = 5
 
 # Seed for reproducibility
 np.random.seed(1810)
@@ -158,13 +158,22 @@ def plot_results(C, f, y, z, diffs):
     plt.title("Differences between f_optimum and f_solution")
     plt.show()
 
+
 A, b, C, f, D, t_0, alpha, omega = generate_data()
+
 
 def main():
     print_data(A, b, C, f, D, t_0, alpha, omega)
     solver, y, z, status = solve_problem(A, b, C, f, D, t_0, alpha, omega)
     if status == pywraplp.Solver.OPTIMAL:
         print_solution(solver, y, z, D, t_0, alpha, C, f)
+
+
+def solve_and_return_solution(A, b, C, f, D, t_0, alpha, omega):
+    # Solve the problem
+    solver, y, z, status = solve_problem(A, b, C, f, D, t_0, alpha, omega)
+
+    return solver, y, z, status
 
 
 if __name__ == '__main__':
